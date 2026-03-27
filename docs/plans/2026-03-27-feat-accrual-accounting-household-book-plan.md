@@ -303,6 +303,8 @@ $$;
 **목표**: 복식부기 기반 거래 입력과 잔액 조회가 작동하는 상태
 
 - [ ] Supabase SQL: `accounts` 테이블 + RLS 정책
+- [ ] Supabase SQL: `categories` 테이블 + RLS 정책
+- [ ] Supabase SQL: `payment_methods` 테이블 + RLS 정책
 - [ ] Supabase SQL: `journal_entries` 테이블 + RLS 정책
 - [ ] Supabase SQL: `postings` 테이블 + RLS 정책 (journal_entry 기반 간접 보호)
 - [ ] Supabase SQL: `user_settings` 테이블 + RLS 정책
@@ -513,7 +515,10 @@ $$;
 - [ ] 대시보드: 이번 달 요약 (발생주의 비용) + 예측 그래프 + 순자산 추이
 - [ ] 예측 그래프 6/12개월 전환
 - [ ] 3대 보고서 (P&L, B/S, C/F) 월별 조회
-- [ ] 카테고리 CRUD
+- [ ] 결제 수단 등록 및 관리
+- [ ] 이체 거래 (카드 대금 결제, 계좌 이체) 입력 가능
+- [ ] 목적별 계정 분류 + 품목별 카테고리 동작
+- [ ] 계정/카테고리 CRUD
 - [ ] CSV 내보내기
 - [ ] 과거 데이터 자유 수정 → 해당 월 자동 재계산
 - [ ] 모든 분개에서 차변합 = 대변합 (회계등식 불변)
