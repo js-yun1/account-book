@@ -54,6 +54,14 @@ export async function generatePendingRecurringEntries(
 
   let created = 0;
 
+  // 선불비용(자산) 계정 조회 (필요 시)
+  const { data: prepaidAccount } = await supabase
+    .from("accounts")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("code", "1200") // 선불비용
+    .single();
+
   for (const rule of rules as RecurringRule[]) {
     const dates = generateDates(rule, asOfDate);
 
@@ -61,16 +69,73 @@ export async function generatePendingRecurringEntries(
       const key = `recurring:${rule.id}:${date}`;
       if (existingSet.has(key)) continue;
 
-      // 분개 생성
-      await supabase.rpc("create_journal_entry", {
-        p_user_id: userId,
-        p_entry_date: date,
-        p_effective_date: date,
-        p_description: rule.name,
-        p_source: "recurring",
-        p_tx_type: rule.tx_type,
-        p_postings: rule.postings_template,
-      });
+      if (rule.is_prepaid && rule.allocation_months && prepaidAccount) {
+        // === 선불비용 처리 ===
+        // 1) 납부 분개: Dr. 선불비용(자산) / Cr. 결제수단
+        const totalAmount = rule.postings_template
+          .filter((p) => p.amount > 0)
+          .reduce((sum, p) => sum + p.amount, 0);
+        const creditAccount = rule.postings_template.find((p) => p.amount < 0);
+
+        if (creditAccount) {
+          await supabase.rpc("create_journal_entry", {
+            p_user_id: userId,
+            p_entry_date: date,
+            p_effective_date: date,
+            p_description: `${rule.name} (납부)`,
+            p_source: "recurring",
+            p_tx_type: "transfer",
+            p_postings: [
+              { account_id: prepaidAccount.id, amount: totalAmount },
+              { account_id: creditAccount.account_id, amount: -totalAmount },
+            ],
+          });
+
+          // 2) 매월 배분 분개: Dr. 비용계정 / Cr. 선불비용(자산)
+          const monthlyAmount = Math.floor(totalAmount / rule.allocation_months);
+          const expenseAccount = rule.postings_template.find((p) => p.amount > 0);
+
+          if (expenseAccount) {
+            const startDate = new Date(date);
+            for (let m = 0; m < rule.allocation_months; m++) {
+              const allocDate = new Date(startDate.getFullYear(), startDate.getMonth() + m, 1);
+              if (allocDate > new Date(asOfDate)) break;
+
+              const allocDateStr = allocDate.toISOString().split("T")[0];
+              const allocKey = `recurring:${rule.id}:alloc:${allocDateStr}`;
+              if (existingSet.has(allocKey)) continue;
+
+              const isLast = m === rule.allocation_months - 1;
+              const amt = isLast ? totalAmount - monthlyAmount * (rule.allocation_months - 1) : monthlyAmount;
+
+              await supabase.rpc("create_journal_entry", {
+                p_user_id: userId,
+                p_entry_date: allocDateStr,
+                p_effective_date: allocDateStr,
+                p_description: `${rule.name} (월할 배분 ${m + 1}/${rule.allocation_months})`,
+                p_source: "recurring",
+                p_tx_type: "expense",
+                p_postings: [
+                  { account_id: expenseAccount.account_id, amount: amt },
+                  { account_id: prepaidAccount.id, amount: -amt },
+                ],
+              });
+              created++;
+            }
+          }
+        }
+      } else {
+        // === 일반 반복거래 ===
+        await supabase.rpc("create_journal_entry", {
+          p_user_id: userId,
+          p_entry_date: date,
+          p_effective_date: date,
+          p_description: rule.name,
+          p_source: "recurring",
+          p_tx_type: rule.tx_type,
+          p_postings: rule.postings_template,
+        });
+      }
 
       // reference 업데이트 (중복 방지용 키)
       // create_journal_entry가 id를 반환하므로 별도 업데이트 필요

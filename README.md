@@ -1,36 +1,176 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Account Book
 
-## Getting Started
+> 다음 달이 아니라 6개월 후를 보여주는 가계부
 
-First, run the development server:
+기업회계의 핵심 원리(발생주의, 복식부기)를 개인 재무 관리에 맞게 재정의하여 적용한 웹 가계부입니다. 기존 가계부가 과거 기록에만 집중하는 것과 달리, **미래 현금흐름을 정확하게 예측**하는 데 초점을 맞추고 있습니다.
+
+## 왜 만들었나
+
+기존 가계부 앱들에는 근본적인 한계가 있습니다:
+
+**예측 가능한 것조차 예측 가능하게 보여주지 못합니다.**
+
+월급은 매달 정해진 날에 들어오고, 보험료는 매년 같은 달에 나가고, 부조금은 언젠가 반드시 발생합니다. 이런 것들은 모두 어느 정도 예측 가능하지만, 기존 가계부는 이를 반영할 구조가 없습니다.
+
+구체적으로:
+
+1. **소비처 기준 분류, 목적 부재** — "쿠팡 3만원"으로 기록하면 식료품인지 생활용품인지 알 수 없습니다. 돈을 "왜" 썼는지를 알아야 패턴을 파악하고 예측할 수 있습니다.
+
+2. **현금주의 회계** — 연간 보험료 120만원을 1월에 냈다면, 기존 가계부는 "1월에 120만원 지출"로 기록합니다. 하지만 실제로는 매월 10만원의 비용이 12개월에 걸쳐 발생한 것입니다. 현금주의는 월별 지출을 왜곡하고 미래 예측을 부정확하게 만듭니다.
+
+3. **미래 현금흐름 반영 불가** — 예정된 수입(급여, 보너스)과 예정된 지출(보험료, 자동차 검사)을 미래 계획에 반영할 수단이 없습니다.
+
+4. **불확실한 지출에 대한 대비 부재** — 부조금, 긴급 수리비 등 시점은 모르지만 반드시 발생할 지출에 대한 대비 장치가 없습니다.
+
+이 가계부의 모든 설계(발생주의, 목적별 분류, 준비금 등)는 이 문제들을 해결하기 위한 것입니다.
+
+## 핵심 기능
+
+### 발생주의 회계
+
+기존 가계부는 현금이 오간 시점에 기록합니다(현금주의). 이 가계부는 경제적 사건이 발생한 시점에 기록합니다(발생주의).
+
+**왜 필요한가**: 현금주의에서는 연간 보험료를 낸 1월의 지출이 비정상적으로 높게 나타나고, 나머지 11개월은 실제보다 낮게 나타납니다. 이렇게 왜곡된 데이터로는 "다음 달 지출이 얼마일까"를 정확히 예측할 수 없습니다. 발생주의는 비용을 실제 귀속 기간에 배분하여 월별 데이터를 정규화하고, 예측의 정확도를 높입니다.
+
+- 연간 보험료 120만원 → 매월 10만원씩 12개월 비용 처리
+- 카드 결제 → 사용 시점에 비용+부채 발생, 출금 시 부채 상환
+- 자산 감가상각 → 정액법으로 매월 자동 상각
+
+### 내부 복식부기
+
+사용자에게는 단순한 입력 폼을 보여주되, 내부적으로는 복식부기(차변/대변)로 동작합니다.
+
+**왜 필요한가**: 복식부기의 핵심 가치는 **정확한 순자산 추적**입니다. 단식부기에서는 "카드로 결제했는데 아직 빠져나가지 않은 돈"이나 "계좌 이체" 같은 거래를 정확히 기록할 수 없습니다. 복식부기는 모든 거래의 양면(돈이 어디서 나가고 어디로 갔는지)을 기록하므로, 순자산이 어떻게 변해왔고 앞으로 어떻게 변할 것인가를 정확히 보여줄 수 있습니다.
+
+- 모든 거래에서 차변합 = 대변합 보장
+- 회계등식(자산 = 부채 + 순자산) 자동 검증으로 입력 오류 자동 발견
+- 순자산 시계열 변화 정확 추적
+
+### 4유형 현금흐름 예측
+
+가계의 현금 유출입을 성격별로 4가지로 분류하고, 각각에 최적화된 예측 방식을 적용합니다.
+
+**왜 필요한가**: 모든 지출을 하나의 방식으로 예측하면 정확도가 떨어집니다. 월세처럼 금액이 확정된 것과 식비처럼 매달 변동하는 것, 부조금처럼 시점조차 알 수 없는 것은 각각 다른 예측 방식이 필요합니다.
+
+| 유형 | 예시 | 예측 방식 | 왜 이 방식인가 |
+|------|------|----------|--------------|
+| 고정 반복 | 급여, 월세, 구독료 | 사용자 등록 → 자동 반영 | 금액/주기가 확정되어 있으므로 그대로 반영 |
+| 변동 반복 | 식비, 교통비 | EMA + 이상치 제거 | 매월 발생하지만 금액이 변동하므로 최근 추세 가중 |
+| 예정 비반복 | 연간 보험료, 자동차 검사 | 예정일/금액 등록 | 시점과 금액을 사전에 알 수 있음 |
+| 불확실 발생 | 부조금, 긴급 수리 | 준비금 계정 (가상 적립) | 시점/금액 불확실 → 보수적 적립으로 안전마진 확보 |
+
+### 목적별 계정 분류
+
+기업회계의 성격별 분류(원재료비, 인건비...) 대신, 가계부에 최적화된 **목적별 분류**(요리, 외식, 교통, 주거...)를 사용합니다.
+
+**왜 필요한가**: 기업회계가 성격별 분류를 쓰는 이유는 외부 감사인이 객관적으로 검증 가능해야 하기 때문입니다. 가계부에는 외부 감사가 없고, 분류하는 사람이 곧 데이터를 사용하는 사람입니다. 가계부의 목적은 미래 예측과 의사결정이므로, 의사결정 단위("요리를 줄일까 외식을 줄일까")와 일치하는 목적별 분류가 더 적합합니다. 또한 목적별 총액은 품목 구성이 바뀌어도 비교적 안정적이어서 EMA 예측 정확도가 높아집니다.
+
+```
+거래: 쿠팡 35,000원
+├── [계정: 요리] 카테고리: 식료품-채소  15,000원
+├── [계정: 요리] 카테고리: 생활용품-칼  12,000원
+└── [계정: 청소] 카테고리: 생활용품-세제  8,000원
+```
+
+같은 "생활용품"이라도 요리 목적이면 요리 계정, 청소 목적이면 청소 계정으로 분류됩니다.
+
+### 준비금 계정
+
+부조금, 의료비처럼 "언제 발생할지 모르지만 반드시 발생할 지출"에 대해 매월 가상으로 적립하고, 현금흐름 예측에 보수적으로 반영합니다.
+
+**왜 필요한가**: 부조금은 올해 안에 반드시 몇 번은 나갈 돈입니다. 하지만 기존 가계부는 "갑자기 50만원 지출"로만 기록하고, 미래에 이런 지출이 발생할 것을 예측에 반영하지 못합니다. 준비금 계정은 매월 일정액을 가상으로 적립하여 예측에 지출로 반영합니다. 실제 여유자금이 줄어 보이지만, "6개월 후 통장 잔액"이 현실에 더 가까워집니다.
+
+### 3대 보고서
+
+기업회계의 3대 재무제표에 대응하는 보고서를 제공합니다.
+
+**왜 필요한가**: 각 보고서는 서로 다른 질문에 답합니다. 월간 손익은 "이번 달 진짜 비용이 얼마인가"(발생주의), 재산 현황은 "내 순자산이 얼마인가", 현금흐름표는 "실제로 통장에서 얼마가 오고 갔나"(현금주의)를 보여줍니다. 세 가지를 함께 봐야 재무 상태를 입체적으로 파악할 수 있습니다.
+
+| 보고서 | 대응 재무제표 | 핵심 질문 |
+|--------|------------|----------|
+| 월간 손익 | 손익계산서 (P&L) | 이번 달 얼마나 벌고 썼나? (발생주의) |
+| 재산 현황 | 대차대조표 (B/S) | 지금 순자산이 얼마인가? (유동/비유동 분리) |
+| 현금흐름표 | 현금흐름표 (C/F) | 실제 돈이 얼마나 오고 갔나? (현금주의) |
+
+## 기술 스택
+
+- **Frontend**: Next.js 16 (App Router) + TypeScript + Tailwind CSS v4
+- **Backend**: Next.js API Routes + Supabase (PostgreSQL, Auth, Storage)
+- **Chart**: Recharts
+- **AI**: 멀티모달 LLM (Claude/GPT-4o) 영수증 파싱 (사용자 API 키)
+- **Deploy**: Vercel
+
+## 시작하기
+
+### 사전 준비
+
+- Node.js 18+
+- Supabase 프로젝트
+- Google OAuth 설정 (Supabase Auth)
+
+### 설치
+
+```bash
+git clone https://github.com/js-yun1/account-book.git
+cd account-book
+npm install
+```
+
+### 환경 변수
+
+`.env.local` 파일을 생성합니다:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+
+### DB 마이그레이션
+
+Supabase SQL Editor에서 `supabase/migrations/` 폴더의 SQL 파일을 순서대로 실행합니다:
+
+1. `001_core_schema.sql` — 테이블 + RLS
+2. `002_functions.sql` — RPC 함수
+3. `003_assets.sql` — 자산 테이블
+4. `004_recurring_provisions.sql` — 반복거래 + 준비금
+
+### 실행
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+http://localhost:3000 에서 확인합니다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 프로젝트 구조
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+account-book/
+├── app/
+│   ├── (protected)/          # 인증 필수 페이지
+│   │   ├── dashboard/        # 대시보드 (요약 + 예측 차트)
+│   │   ├── transactions/     # 거래 입력/목록/상세
+│   │   ├── recurring/        # 반복/예정 거래
+│   │   ├── assets/           # 자산 관리 + 감가상각
+│   │   ├── provisions/       # 준비금 관리
+│   │   ├── reports/          # 3대 보고서
+│   │   ├── categories/       # 계정(목적) + 카테고리(품목) 관리
+│   │   ├── settings/         # 설정 + 잔액 조정
+│   │   └── onboarding/       # 신규 사용자 온보딩
+│   ├── api/                  # API Routes
+│   └── components/           # 공통 컴포넌트
+├── lib/
+│   ├── accounting/           # 복식부기 엔진, 감가상각, 선불비용, 준비금
+│   ├── forecast/             # EMA, 이상치 제거, 현금흐름 예측
+│   ├── ai/                   # 영수증 AI 파싱
+│   └── supabase/             # Supabase 클라이언트
+├── supabase/migrations/      # DB 스키마 + 함수
+└── docs/
+    ├── brainstorms/           # 기획 문서
+    └── plans/                 # 구현 계획
+```
 
-## Learn More
+## 설계 문서
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [브레인스톰](docs/brainstorms/2026-03-27-account-book-brainstorm.md) — 핵심 개념 7가지 + MVP 구현사항
+- [구현 계획](docs/plans/2026-03-27-feat-accrual-accounting-household-book-plan.md) — 9 Phase 구현 계획 + DB 스키마

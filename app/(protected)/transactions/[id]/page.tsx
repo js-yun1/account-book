@@ -143,13 +143,26 @@ export default function TransactionDetailPage({
         </div>
       </div>
 
-      <button
-        onClick={handleDelete}
-        disabled={deleting}
-        className="w-full rounded-lg border border-red-300 dark:border-red-800 px-4 py-3 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 disabled:opacity-50 transition-colors"
-      >
-        {deleting ? "삭제 중..." : "거래 삭제"}
-      </button>
+      {tx.source !== "system" && tx.source !== "recurring" && (
+        <div className="flex gap-3">
+          <Link
+            href={`/transactions/new?edit=${tx.id}`}
+            className="flex-1 rounded-lg bg-blue-600 px-4 py-3 text-sm font-medium text-white text-center hover:bg-blue-700 transition-colors"
+          >
+            수정
+          </Link>
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            className="flex-1 rounded-lg border border-red-300 dark:border-red-800 px-4 py-3 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 disabled:opacity-50 transition-colors"
+          >
+            {deleting ? "삭제 중..." : "삭제"}
+          </button>
+        </div>
+      )}
+      {(tx.source === "system" || tx.source === "recurring") && (
+        <p className="text-xs text-center text-gray-400">시스템 자동 생성 분개는 수정/삭제할 수 없습니다</p>
+      )}
     </div>
   );
 }
