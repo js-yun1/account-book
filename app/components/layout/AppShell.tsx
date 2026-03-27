@@ -6,10 +6,17 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 
-const navItems = [
+const mainNavItems = [
   { href: "/dashboard", label: "대시보드", icon: DashboardIcon },
   { href: "/transactions", label: "거래", icon: TransactionIcon },
+  { href: "/recurring", label: "반복거래", icon: TransactionIcon },
   { href: "/reports", label: "보고서", icon: ReportIcon },
+];
+
+const subNavItems = [
+  { href: "/assets", label: "자산", icon: DashboardIcon },
+  { href: "/provisions", label: "준비금", icon: ReportIcon },
+  { href: "/categories", label: "계정/카테고리", icon: SettingsIcon },
   { href: "/settings", label: "설정", icon: SettingsIcon },
 ];
 
@@ -42,24 +49,36 @@ export function AppShell({
           </Link>
         </div>
 
-        <nav className="flex-1 space-y-1 px-2 py-4">
-          {navItems.map((item) => {
-            const isActive = pathname.startsWith(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  isActive
-                    ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+        <nav className="flex-1 overflow-y-auto px-2 py-4">
+          <div className="space-y-1">
+            {mainNavItems.map((item) => {
+              const isActive = pathname.startsWith(item.href);
+              return (
+                <Link key={item.href} href={item.href}
+                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                    isActive ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                     : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50"
-                }`}
-              >
-                <item.icon className="h-5 w-5" />
-                {item.label}
-              </Link>
-            );
-          })}
+                  }`}>
+                  <item.icon className="h-5 w-5" />{item.label}
+                </Link>
+              );
+            })}
+          </div>
+          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-800 space-y-1">
+            <p className="px-3 text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">관리</p>
+            {subNavItems.map((item) => {
+              const isActive = pathname.startsWith(item.href);
+              return (
+                <Link key={item.href} href={item.href}
+                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                    isActive ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                  }`}>
+                  <item.icon className="h-4 w-4" />{item.label}
+                </Link>
+              );
+            })}
+          </div>
         </nav>
 
         <div className="border-t border-gray-200 dark:border-gray-800 p-4">
@@ -92,23 +111,24 @@ export function AppShell({
       {/* 모바일 바텀 네비게이션 */}
       <nav className="fixed bottom-0 inset-x-0 md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 z-50 safe-bottom">
         <div className="flex justify-around items-center h-16">
-          {navItems.map((item) => {
+          {mainNavItems.map((item) => {
             const isActive = pathname.startsWith(item.href);
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex flex-col items-center gap-1 min-w-[64px] py-1 ${
-                  isActive
-                    ? "text-blue-600 dark:text-blue-400"
-                    : "text-gray-500 dark:text-gray-400"
-                }`}
-              >
+              <Link key={item.href} href={item.href}
+                className={`flex flex-col items-center gap-1 min-w-[56px] py-1 ${
+                  isActive ? "text-blue-600 dark:text-blue-400" : "text-gray-500 dark:text-gray-400"
+                }`}>
                 <item.icon className="h-5 w-5" />
                 <span className="text-[10px] font-medium">{item.label}</span>
               </Link>
             );
           })}
+          <Link href="/settings" className={`flex flex-col items-center gap-1 min-w-[56px] py-1 ${
+            pathname.startsWith("/settings") ? "text-blue-600 dark:text-blue-400" : "text-gray-500 dark:text-gray-400"
+          }`}>
+            <SettingsIcon className="h-5 w-5" />
+            <span className="text-[10px] font-medium">설정</span>
+          </Link>
         </div>
       </nav>
     </div>

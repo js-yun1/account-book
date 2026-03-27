@@ -65,7 +65,7 @@ export default async function DashboardPage() {
       </h1>
 
       {/* 이번 달 요약 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
           <p className="text-sm text-gray-500 dark:text-gray-400">이번 달 수입</p>
           <p className="mt-2 text-2xl font-bold text-green-600 dark:text-green-400">
@@ -79,6 +79,14 @@ export default async function DashboardPage() {
           </p>
         </div>
         <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            {monthlyIncome >= monthlyExpense ? "순저축" : "순소비"}
+          </p>
+          <p className={`mt-2 text-2xl font-bold ${monthlyIncome >= monthlyExpense ? "text-blue-600 dark:text-blue-400" : "text-orange-600 dark:text-orange-400"}`}>
+            {formatKRW(Math.abs(monthlyIncome - monthlyExpense))}
+          </p>
+        </div>
+        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 col-span-2 md:col-span-4">
           <p className="text-sm text-gray-500 dark:text-gray-400">순자산</p>
           <p className="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
             {formatKRW(netWorth)}
