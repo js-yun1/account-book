@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { formatKRW } from "@/lib/utils/currency";
 import type { UserSettings, PaymentMethod, Account } from "@/lib/accounting/types";
@@ -319,6 +320,7 @@ export default function SettingsPage() {
       <div className="space-y-4">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">개발/테스트</h2>
         <DemoDataButton />
+        <ResetAccountButton />
       </div>
     </div>
   );
@@ -355,6 +357,37 @@ function DemoDataButton() {
       {result && (
         <p className={`mt-2 text-sm ${result.includes("실패") ? "text-red-600" : "text-green-600"}`}>{result}</p>
       )}
+    </div>
+  );
+}
+
+function ResetAccountButton() {
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+
+  async function handleReset() {
+    if (!confirm("모든 데이터(계정, 거래, 설정)가 삭제되고 온보딩부터 다시 시작합니다. 정말 삭제할까요?")) return;
+    if (!confirm("정말로 삭제합니다. 되돌릴 수 없습니다.")) return;
+
+    setLoading(true);
+    const res = await fetch("/api/reset-account", { method: "POST" });
+    if (res.ok) {
+      router.push("/onboarding");
+    } else {
+      alert("초기화 실패");
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
+      <button
+        onClick={handleReset}
+        disabled={loading}
+        className="w-full rounded-lg border border-red-300 dark:border-red-800 px-4 py-3 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 disabled:opacity-50 transition-colors"
+      >
+        {loading ? "삭제 중..." : "계정 데이터 전체 삭제 (온보딩 재시작)"}
+      </button>
     </div>
   );
 }
