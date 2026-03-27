@@ -211,15 +211,17 @@ export default function OnboardingPage() {
             ))}
           </div>
 
-          <div className="flex gap-2">
-            <input type="text" value={newPmName} onChange={(e) => setNewPmName(e.target.value)} placeholder="이름 (예: 국민은행)" className={inputClass + " flex-1"} />
-            <select value={newPmType} onChange={(e) => setNewPmType(e.target.value)} className={inputClass + " w-32"}>
-              <option value="bank_account">은행 예금</option>
-              <option value="credit_card">신용카드</option>
-              <option value="debit_card">체크카드</option>
-              <option value="cash">현금</option>
-            </select>
-            <button onClick={addPaymentMethod} className="rounded-lg bg-gray-200 dark:bg-gray-700 px-3 py-2 text-sm hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">추가</button>
+          <div className="space-y-2">
+            <div className="grid grid-cols-[1fr_auto] gap-2">
+              <input type="text" value={newPmName} onChange={(e) => setNewPmName(e.target.value)} placeholder="이름 (예: 국민은행)" className={inputClass} />
+              <select value={newPmType} onChange={(e) => setNewPmType(e.target.value)} className={inputClass}>
+                <option value="bank_account">은행 예금</option>
+                <option value="credit_card">신용카드</option>
+                <option value="debit_card">체크카드</option>
+                <option value="cash">현금</option>
+              </select>
+            </div>
+            <button onClick={addPaymentMethod} className="w-full rounded-lg bg-gray-200 dark:bg-gray-700 px-3 py-2 text-sm font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">+ 추가</button>
           </div>
 
           <div className="flex gap-2">
