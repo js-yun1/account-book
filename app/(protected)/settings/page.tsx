@@ -27,17 +27,32 @@ export default function SettingsPage() {
   }, []);
 
   async function loadAll() {
-    const [settingsRes, pmRes] = await Promise.all([
-      supabase.from("user_settings").select("*").single(),
-      supabase.from("payment_methods").select("*, accounts:linked_account_id(id, name, type)").eq("is_active", true),
-    ]);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setLoading(false); return; }
 
-    setSettings(settingsRes.data as UserSettings | null);
+    // user_settings가 없으면 자동 생성
+    let { data: settingsData } = await supabase.from("user_settings").select("*").eq("user_id", user.id).maybeSingle();
+
+    if (!settingsData) {
+      const { data: created } = await supabase
+        .from("user_settings")
+        .insert({ user_id: user.id })
+        .select()
+        .single();
+      settingsData = created;
+    }
+
+    const { data: rawPms } = await supabase
+      .from("payment_methods")
+      .select("*, accounts:linked_account_id(id, name, type)")
+      .eq("is_active", true);
+
+    setSettings(settingsData as UserSettings | null);
 
     // 각 결제 수단의 현재 잔액 조회
-    const pmData = (pmRes.data || []) as (PaymentMethod & { accounts: Account })[];
+    const pmList = (rawPms || []) as (PaymentMethod & { accounts: Account })[];
     const withBalances = await Promise.all(
-      pmData.map(async (pm) => {
+      pmList.map(async (pm) => {
         const { data: balance } = await supabase.rpc("get_account_balance", {
           p_account_id: pm.linked_account_id,
         });
